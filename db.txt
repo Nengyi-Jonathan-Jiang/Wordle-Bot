@@ -1,1 +1,1 @@
-{}
+{"937490415354007602-939263946819510313":"{\"length\":5,\"defaultLength\":5,\"leniency\":false,\"defaultLeniency\":false,\"guesses\":[],\"target\":\"WORDLE\",\"dictionary\":[],\"words\":[]}","796555696250159126-938934374332764180":"{\"length\":5,\"defaultLength\":5,\"leniency\":false,\"defaultLeniency\":false,\"guesses\":[],\"target\":\"WORDLE\",\"dictionary\":[],\"words\":[]}"}

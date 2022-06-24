@@ -1,11 +1,12 @@
 console.log("Tryna connect....");
 
-require('dotenc').config();
+require('dotenv').config();
 
 const Discord = require("discord.js");
 const database = require("./database");
 const {Wordle, processMessage, setFunc} = require("./wordle");
 
+console.log(Wordle.dictionary);
 
 let w = new Wordle();	//Hack to make JSDoc know what a wordle is
 
@@ -18,6 +19,8 @@ function getChannelString(msg){return `${msg.guild.id}-${msg.channel.id}`}
 /** @param {Discord.Message} msg */
 function saveWordle(msg){
 	let channelStr = getChannelString(msg);
+	if(!wordles.get(channelStr)) return;
+	
 	database.data[channelStr] = wordles.get(channelStr).toString();
 
 	database.saveData();
@@ -176,7 +179,7 @@ setFunc("!wordle-length",(msg,args)=>{
 
 			msg.channel.send(`Set wordle length to ${args[0]}.`);
 
-			saveWordle(wordle);
+			saveWordle(msg);
 			break;
 		default:
 			msg.reply("Invalid word length! Must be between 4 and 8 inclusive");

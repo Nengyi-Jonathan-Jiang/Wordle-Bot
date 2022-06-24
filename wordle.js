@@ -64,6 +64,7 @@ class Wordle{
 
 	/** @param {String} word */
 	exists(word){
+		console.log(word, Wordle.dictionary.has(word), this.dictionary.has(word));
 		return Wordle.dictionary.has(word) || this.dictionary.has(word);
 	}
 
@@ -140,24 +141,24 @@ class Wordle{
 	static loadWordsFromFile(wordLength, path){
 		let text = fs.readFileSync(__dirname + "/" + path).toString();
 		let words = text.toUpperCase().trim().split(/[\n ]/g).map(i=>i.trim())
-		this.loadWords(wordLength, words);
+		Wordle.loadWords(wordLength, words);
 	}
 	/** @param {String} path */
 	static updateDictionaryFromFile(path){
 		let text = fs.readFileSync(__dirname + "/" + path).toString();
 		let words = text.toUpperCase().trim().split(/[\n ]/g).map(i=>i.trim())
-		this.updateDictionary(words);
+		Wordle.updateDictionary(words);
 	}
 	/** @param {Number} wordLength @param {String[]} words */
 	static loadWords(wordLength, words){
-		this.words.set(wordLength, new Set([...(this.words.get(wordLength) || []), ...words]));
+		Wordle.words.set(wordLength, new Set([...(Wordle.words.get(wordLength) || []), ...words]));
 		// We need to update the dictionay as well because all guessable words must also
 		// be present in the dictionary
-		this.updateDictionary(words);
+		Wordle.updateDictionary(words);
 	}
 	/** @param {String[]} words */
 	static updateDictionary(words){
-		this.dictionary = new Set([this.dictionary, ...words.filter(i => /^[a-zA-Z]+$/.test(i))]);
+		Wordle.dictionary = new Set([...Wordle.dictionary, ...words.filter(i => /^[a-zA-Z]+$/.test(i))]);
 	}
 }
 
