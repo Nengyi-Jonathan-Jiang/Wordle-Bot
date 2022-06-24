@@ -192,5 +192,4 @@ setFunc("!encourage",(msg,args)=>{
 require("./server")();
 
 //Login as the bot
-//client.login(process.env.TOKEN)
-client.login("OTM3MDMxNjc5MDIzOTEwOTYy.YfV0wQ.SP1J571d4iNs3782A0zxgz9rwB8")
+client.login(process.env.TOKEN)

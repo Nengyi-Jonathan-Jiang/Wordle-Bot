@@ -9,5 +9,5 @@ function saveData(){
 
 module.exports = {
     saveData: saveData,
-    get data(){return data}
+    get data(){return data} 
 }
