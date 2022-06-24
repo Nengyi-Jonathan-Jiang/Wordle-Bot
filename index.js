@@ -1,12 +1,10 @@
 console.log("Tryna connect....");
 
 const Discord = require("discord.js");
-const { data } = require("./database");
 const database = require("./database");
 const {Wordle, processMessage, setFunc} = require("./wordle");
 
 
-//if(false) 
 let w = new Wordle();	//Hack to make JSDoc know what a wordle is
 
 /** @type {Map<string, w>} */
