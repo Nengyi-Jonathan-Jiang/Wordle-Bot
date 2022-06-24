@@ -1,5 +1,7 @@
 console.log("Tryna connect....");
 
+require('dotenc').config();
+
 const Discord = require("discord.js");
 const database = require("./database");
 const {Wordle, processMessage, setFunc} = require("./wordle");
