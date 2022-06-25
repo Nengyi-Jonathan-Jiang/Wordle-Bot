@@ -1,4 +1,3 @@
-const Discord = require("discord.js");
 const {registerFont, createCanvas, Canvas} = require("canvas");
 const fs = require("fs");
 
@@ -25,7 +24,9 @@ class Wordle{
 	}
 
 	reset(){
-		this.target = this.randomWord();
+		this.target = this.randomWord(this.length);
+		this.guesses = [];
+		console.log(this.target);
 	}
 
 	/** @param {String} guess */
@@ -36,10 +37,10 @@ class Wordle{
 				`Error: your guess (${guess}) contains non-alphabetic characters.`
 			);
 		}
-		if(guess.length != this.length){
+		if(guess.length != this.target.length){
 			throw new WordleError(
 				"length mismatch", 
-				`Error: expected word of length (${this.length}) but \"${guess}\" has ${guess.length} letters`
+				`Error: expected word of length (${this.target.length}) but \"${guess}\" has ${guess.length} letters`
 			);
 		}
 		if(!this.lenient && !this.exists(guess)){
@@ -49,7 +50,7 @@ class Wordle{
 			);
 		}
 	
-		this.guesses.push(new WordleResult(this.length, this.target, guess));
+		this.guesses.push(new WordleResult(this.target.length, this.target, guess));
 	}
 
 	/** @param {String} word */
@@ -64,7 +65,6 @@ class Wordle{
 
 	/** @param {String} word */
 	exists(word){
-		console.log(word, Wordle.dictionary.has(word), this.dictionary.has(word));
 		return Wordle.dictionary.has(word) || this.dictionary.has(word);
 	}
 
@@ -89,8 +89,8 @@ class Wordle{
 	get lastGuess(){return this.guesses[this.guesses.length - 1]}
 
 	getAllResultsAsImage(){
-		const scale = Wordle.IMAGE_SIZE / this.length;
-		let canvas = createCanvas();
+		const scale = ~~(Wordle.IMAGE_SIZE / this.target.length);
+		let canvas = createCanvas(scale * this.target.length, scale * this.guesses.length);
 		for(let i = 0; i < this.guesses.length; i++){
 			this.guesses[i].drawToCanvas(canvas, scale, i);
 		}
@@ -98,7 +98,7 @@ class Wordle{
 	}
 
 	getLastResultAsImage(){
-		const scale = Wordle.IMAGE_SIZE / this.length;
+		const scale = ~~(Wordle.IMAGE_SIZE / this.length);
 		return this.guesses[this.guesses.length - 1].toCanvas(scale).toBuffer();
 	}
 
@@ -151,7 +151,8 @@ class Wordle{
 	}
 	/** @param {Number} wordLength @param {String[]} words */
 	static loadWords(wordLength, words){
-		Wordle.words.set(wordLength, new Set([...(Wordle.words.get(wordLength) || []), ...words]));
+		if(!Wordle.words.has(wordLength)) Wordle.words.set(wordLength, new Set(words));
+		else Wordle.words.set(wordLength, new Set([...Wordle.words.get(wordLength), ...words]));
 		// We need to update the dictionay as well because all guessable words must also
 		// be present in the dictionary
 		Wordle.updateDictionary(words);
@@ -223,11 +224,11 @@ class WordleResult {
 		ctx.textAlign = "center";
 		ctx.textBaseline = "middle";
 
-		for(let i = 0; i < word.length; i++){
+		for(let i = 0; i < this.guess.length; i++){
 			ctx.fillStyle = WordleResult.COLORS.get(this.results[i]);
 			ctx.fillRect(scale * i, scale * offset, scale, scale);
 			ctx.fillStyle = "#FFF";
-			ctx.fillText(this.guess[i], (i + .5) * scale, scale * .5);
+			ctx.fillText(this.guess[i], scale * (i + .5), scale * (offset + .5));
 		}
 	}
 }
@@ -248,14 +249,14 @@ Wordle.updateDictionaryFromFile("dictionary/allWords7.txt");
 Wordle.updateDictionaryFromFile("dictionary/allWords8.txt");
 
 Wordle.loadWordsFromFile(4, "dictionary/guessableWords4.txt");
-Wordle.loadWordsFromFile(5, "dictionary/guessableWords6.txt");
-Wordle.loadWordsFromFile(6, "dictionary/guessableWords5.txt");
+Wordle.loadWordsFromFile(5, "dictionary/guessableWords5.txt");
+Wordle.loadWordsFromFile(6, "dictionary/guessableWords6.txt");
 Wordle.loadWordsFromFile(7, "dictionary/guessableWords7.txt");
 Wordle.loadWordsFromFile(8, "dictionary/guessableWords8.txt");
 
 const staticPrefixFuncs = new Map();
 const dynPrefixFuncs = [];
-/** @param {string|((msg:string)=>boolean)} prefix @param {(msg:Discord.Message,args:string[])=>any} func */
+/** @param {string|((msg:string)=>boolean)} prefix @param {(msg:import('discord.js').Message,args:string[])=>any} func */
 function setFunc(prefix, func){
 	if(func == null) funcs.delete(prefix);
 	else switch(typeof prefix){
@@ -268,7 +269,7 @@ function setFunc(prefix, func){
 	}
 }
 
-/** @param {Discord.Message} */
+/** @param {import("discord.js").Message} msg */
 function processMessage(msg){
 	const [prefix, ...args] = msg.content.split(" ");
 	if(staticPrefixFuncs.has(prefix.toLowerCase())){

@@ -6,8 +6,6 @@ const Discord = require("discord.js");
 const database = require("./database");
 const {Wordle, processMessage, setFunc} = require("./wordle");
 
-console.log(Wordle.dictionary);
-
 let w = new Wordle();	//Hack to make JSDoc know what a wordle is
 
 /** @type {Map<string, w>} */
@@ -35,7 +33,11 @@ function saveWordles(){
 function getWordle(msg){
 	let channelStr = getChannelString(msg);
 	if(wordles.has(channelStr)) return wordles.get(channelStr);
-	if(database.data[channelStr]) return new Wordle().fromString(database.data[channelStr]);
+	if(database.data[channelStr]){
+		let newWordle = new Wordle().fromString(database.data[channelStr]);
+		wordles.set(channelStr, newWordle);
+		return newWordle;
+	}
 	return null;
 }
 /** @param {Discord.Message} msg */
@@ -96,12 +98,25 @@ setFunc("!wordle-enable",(msg,_args)=>{
 		saveWordle(msg);
 	}
 });
+setFunc("!wordle-reset",(msg,_args)=>{
+	let wordle = getWordle(msg);
+	if(!wordle){
+		msg.reply("Wordle is currently disabled in this channel! Use \"!wordle-enable\" to enable it!");
+	}
+	else{
+		wordle.reset();
+		msg.reply("Generating new word");
+		saveWordle(msg);
+	}
+});
 
 setFunc("!wordle-disable",(msg,_args)=>{
 	deleteWordle(msg);
 	msg.reply("Disabled wordle in this channel");
 });
-
+setFunc("tell", (msg)=>{
+	msg.reply("it was " + getWordle(msg).target);
+});
 setFunc("wguess",(msg,args) => {
 	if(!args[0]){
 		return;
@@ -119,17 +134,37 @@ setFunc("wguess",(msg,args) => {
 		wordle.guess(guess);
 	}
 	catch(e){
-		msg.reply(e.message)
+		msg.reply("***ERROR***!!! " + e.message)
 		return;
 	}
 
 	msg.reply({
-		content: "",
+		content: "-",
 		files: [new Discord.MessageAttachment(wordle.getLastResultAsImage(), "image.png")]
 	})
 	
 	saveWordle(msg);
 });
+
+setFunc("wordle-history", (msg)=>{
+	let wordle = getWordle(msg);
+
+	if(!wordle){
+		msg.reply("Wordle is currently disabled in this channel! Use \"!wordle-enable\" to enable it!");
+		return;
+	}
+
+	if(!wordle.guesses.length){
+		msg.reply("No history to show!");
+		return;
+	}
+
+	msg.reply({
+		content: " ",
+		files: [new Discord.MessageAttachment(wordle.getAllResultsAsImage(), "image.png")]
+	})
+})
+
 setFunc("!wordle-giveup",(msg,args)=>{
 	let wordle = getWordle(msg);
 	//This command doesn't work in disabled channels
@@ -162,13 +197,18 @@ setFunc("!wordle-leniency",(msg,args)=>{
 	}
 });
 setFunc("!wordle-length",(msg,args)=>{
-	let wordle = getWordle(msg);
+	let wordle = getWordle(msg), length = args[0];
 	if(!wordle){
 		msg.reply("Wordle is currently disabled in this channel! Use \"!wordle-enable\" to enable it so that you can use this command!");
 		return;
 	}
 
-	switch(args[0]){
+	if(!length){
+		msg.reply("Please specify a length.");
+		return;
+	}
+
+	switch(length){
 		case "4":
 		case "5":
 		case "6":
@@ -176,9 +216,7 @@ setFunc("!wordle-length",(msg,args)=>{
 		case "8":
 			wordle.length = +args[0];
 			wordle.reset();
-
 			msg.channel.send(`Set wordle length to ${args[0]}.`);
-
 			saveWordle(msg);
 			break;
 		default:
