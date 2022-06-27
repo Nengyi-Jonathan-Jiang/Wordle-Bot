@@ -40,7 +40,8 @@ function deleteWordle(msg){
 }
 
 let wordleHandler = new Commands.Module("Wordle", "wordle");
-wordleHandler.addCommand("help", (msg)=>{
+
+function help(msg){
 	msg.reply([
 		"Wordle Bot Commands",
 		"-----------------------------",
@@ -58,8 +59,11 @@ wordleHandler.addCommand("help", (msg)=>{
 		"history : Shows all previous guesses for this word",
 		"-----------------------------",
 	].join('\n'))
-})
-wordleHandler.setDefaultCommandAsAlias("help");	//Now "wordle" is an alias for "wordle-help"
+}
+wordleHandler.addCommand("help", help)
+wordleHandler.setDefaultCommand(msg=>{
+	if(getWordle(msg)) help(msg);
+});	//Now "wordle" is an alias for "wordle-help"
 
 wordleHandler.addCommand("test", (msg)=>{
 	msg.reply("Hello! I am Wordle Bot!");
