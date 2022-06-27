@@ -1,1 +1,1 @@
-{}
+{"937490415354007602-991084840881356920":"{\"defaultLength\":5,\"lenient\":false,\"guesses\":[],\"target\":\"PIECE\",\"dictionary\":[],\"words\":[]}","937490415354007602-991090030602756096":"{\"defaultLength\":5,\"lenient\":false,\"guesses\":[],\"target\":\"RANGE\",\"dictionary\":[],\"words\":[]}"}

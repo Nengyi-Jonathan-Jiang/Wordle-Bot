@@ -188,7 +188,7 @@ wordleHandler.addCommand("length",(msg,_data, length)=>{
 	let wordle = getWordle(msg);
 	if(!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
 	
-	wordle.length = +length;
+	wordle.defaultLength = +length;
 	
-	msg.reply(`Set default leniency to ${+length} (changes will take take effect on the next wordle)`);
+	msg.reply(`Set default length to ${+length} (changes will take take effect on the next wordle)`);
 });
