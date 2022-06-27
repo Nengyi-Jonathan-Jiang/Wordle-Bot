@@ -1,63 +1,9 @@
-const funcs = new Map();
-function on(prefix, func){
-    if(func == null) funcs.delete(prefix);
-    funcs.set(prefix, func);
-}
-/** @param {import("discord.js").Message} msg */
-function process(msg){
-    const lines = msg.content.split(/[\n]/g).map(i => i.split(/\s+/g).join(" "));
-    //Only interpret this message as a list of commands if the first non-empty line is a valid command
-    //While the first line is not empty
-    while(lines.length > 0){
-        let line = lines.shift();
-        if(line.length == 0) continue;
-        // split the line into the arguments
-        const [prefix, command, ...args] = line.split(/ /g);
-        // If the command doesn't exist, we know this message should not be interpreted as a list of commands
-        if(!prefix || !Module.modules.has(prefix)) return;
-        // Otherwise execute the command and break out of the while
-        let module = Module.modules.get(prefix)
-        module.executeCommand(command, msg, args);
-        break;
-    }
-    //Then execute the rest of the commands
-    for(let line of lines){
-        if(!execute(line)) return;
-    }
-}
-/** @param {import("discord.js").Message} msg @param {String} line */
-function execute(msg, line){
-    // split the line into the arguments
-    const [prefix, command, ...args] = line.split(/ /);
-    // If the command doesn't exist, stop and error
-    if(!prefix || !Module.modules.has(prefix)){
-        msg.reply();
-        return;
-    }
-    let module = Module.modules.get(prefix)
-    //Try to execute the command
-    try{
-        //If the command did not successfully execute
-        if(!module.executeCommand(command, msg, args)){
-
-        }
-    }
-    catch(e){ //Error! tell the user that the command failed
-        msg.reply(`Error executing command \"${line}\" unsuccessful. Error message:\n\n${e.message}`);
-        //and stop
-        return;
-    }
-    //Error
-    msg.reply("Error: ");
-    return;
-}
-
 /** @typedef {(msg:import("discord.js").Message,data:any,...args:String[])=>any} Command */
 
 class Module{
     /** @type {Map<String, Module>} */
     static modules = new Map();
-    /** @type {Set<String>} */
+    /** @type {Set<String, Module>} */
     static moduleNames = new Set();
 
     /** @param {String} name @param {String} prefix */
@@ -69,8 +15,12 @@ class Module{
             throw new Error(`Error: Prefix may not contain spaces or newlines`);
         if(Module.modules.has(prefix))
             throw new Error(`Error: Prefix "${prefix}" already taken`);
+        
+        Module.moduleNames.add(name);
         Module.modules.set(prefix, this);
+
         this.name = name;
+        this.prefix = prefix;
 
         /** @type {Map<String, Command>} */
         this.commands = new Map();
@@ -95,11 +45,70 @@ class Module{
         this.defaultCommand = func;
     }
 
+    /** @param {String} command @param {String} alias */
+    setAlias(command, alias){
+        this.commands.set(alias, this.commands.get(command));
+    }
+
+    /** @param {String} command */
+    setDefaultCommandAsAlias(command){
+        this.defaultCommand = this.commands.get(command);
+    }
+
+    /** @param {String} command */
+    removeCommand(command){
+        this.commands.delete(command);
+    }
+
+    /** @param {String} name */
+    hasCommand(name){
+        return name === undefined ? this.defaultCommand !== null : this.commands.has(name);
+    }
+
     /** @param {String} name @param {import("discord.js").Message} msg @param {String[]} args */
-    executeCommand(name, msg, args){
+    execute(name, msg, args){
         let command = name === undefined ? this.defaultCommand : this.commands.get(name);
-        if(command) command.apply(null, msg, this.data, ...args);
+        command.call({}, msg, this.data, ...args);
     }
 }
 
-module.exports = {Module: Module, process: process};
+/** @param {import("discord.js").Message} msg */
+function process(msg){
+    const lines = msg.content.split(/\n/g).filter(i=>i!="").map(i => i.split(/\s+/g).join(" "));
+    let line;
+    try{
+        line = lines[0];
+        //Only interpret this message as a list of commands if the first non-empty line is a valid command
+        if(!execute(msg, line)) return;
+        //Execute the rest of the lines as commands
+        for(let i = 1; i < lines.length; i++){
+            line = lines[i];
+            if(!execute(msg, line)) {
+                msg.reply(`Unknown command: ${line}`);
+                return;
+            }
+        }
+    }
+    catch(e){msg.reply(`Error executing command \"${line}\": ${e.message}`)}
+}
+
+/** @param {import("discord.js").Message} msg @param {String} line */
+function execute(msg, line){
+    // split the line into the arguments
+    const [prefix, command, ...args] = line.split(/ /);
+
+    // Make sure the command exists
+    if(!prefix || !Module.modules.has(prefix)){
+        return false;
+    }
+    let module = Module.modules.get(prefix)
+    if(!module.hasCommand(command)){
+        throw new Error(`Unknown command for prefix ${prefix}`);
+    }
+
+    // Execute the command
+    module.execute(command, msg, args);
+    return true;
+}
+
+module.exports = {Module, process};

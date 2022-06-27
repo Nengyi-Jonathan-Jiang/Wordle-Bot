@@ -5,6 +5,7 @@ require('dotenv').config();
 const Discord = require("discord.js");
 const database = require("./database");
 const {Wordle, processMessage, setFunc} = require("./wordle");
+const Commands = require('./commands');
 
 let w = new Wordle();	//Hack to make JSDoc know what a wordle is
 
@@ -55,14 +56,12 @@ const client = new Discord.Client({intents: 32767});
 client.on("ready", ()=>{console.log(`Logged in as ${client.user.tag}.`)})
 //Process messages
 client.on("messageCreate",msg=>{
-	processMessage(msg)
+	processMessage(msg);
+	Commands.process(msg);
 })
 
-//Add all the functions
-setFunc("!wordle-test",(msg,_args)=>{
-	msg.reply("TESTING...");
-});
-setFunc("!wordle-help",(msg,_args)=>{
+let wordleHandler = new Commands.Module("Wordle", "wordle");
+wordleHandler.addCommand("help", (msg, data, ...args)=>{
 	msg.reply([
 		"Wordle Bot Commands",
 		"-----------------------------",
@@ -87,7 +86,13 @@ setFunc("!wordle-help",(msg,_args)=>{
 		"Note: commands prefixes are case-insensitive (Yay!)",
 		"-----------------------------",
 	].join('\n'))
-});
+})
+wordleHandler.setDefaultCommandAsAlias("help");
+
+wordleHandler.addCommand("test", (msg)=>{
+	msg.reply("Hello! I am Wordle Bot!");
+})
+
 setFunc("!wordle-enable",(msg,_args)=>{
 	if(getWordle(msg)){
 		msg.reply("Wordle is already enabled in this channel!");
