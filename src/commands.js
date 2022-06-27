@@ -22,12 +22,12 @@ class Module{
         this.name = name;
         this.prefix = prefix;
 
-        /** @type {Map<String, Command>} */
+        /** @private @type {Map<String, Command>} */
         this.commands = new Map();
-        /** @type {Command} */
+        /** @private @type {Command} */
         this.defaultCommand = null;
 
-        /** @type {any} */
+        /** @private @type {any} */
         this.data = {}
     }
 

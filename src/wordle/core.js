@@ -1,5 +1,6 @@
 const {registerFont, createCanvas, Canvas} = require("canvas");
 const fs = require("fs");
+const Path = require("path");
 
 registerFont('./res/Orbitron.ttf', { family: 'Orbitron' });
 
@@ -139,13 +140,13 @@ class Wordle{
 	
 	/** @param {Number} wordLength @param {String} path */
 	static loadWordsFromFile(wordLength, path){
-		let text = fs.readFileSync(__dirname + "/" + path).toString();
+		let text = fs.readFileSync(Path.join(__dirname, path)).toString();
 		let words = text.toUpperCase().trim().split(/[\n ]/g).map(i=>i.trim())
 		Wordle.loadWords(wordLength, words);
 	}
 	/** @param {String} path */
 	static updateDictionaryFromFile(path){
-		let text = fs.readFileSync(__dirname + "/" + path).toString();
+		let text = fs.readFileSync(Path.join(__dirname, path)).toString();
 		let words = text.toUpperCase().trim().split(/[\n ]/g).map(i=>i.trim())
 		Wordle.updateDictionary(words);
 	}
@@ -242,17 +243,17 @@ class WordleError extends Error{
 
 // Load word lists
 
-Wordle.updateDictionaryFromFile("dictionary/allWords4.txt");
-Wordle.updateDictionaryFromFile("dictionary/allWords5.txt");
-Wordle.updateDictionaryFromFile("dictionary/allWords6.txt");
-Wordle.updateDictionaryFromFile("dictionary/allWords7.txt");
-Wordle.updateDictionaryFromFile("dictionary/allWords8.txt");
+Wordle.updateDictionaryFromFile("../../res/dictionary/allWords4.txt");
+Wordle.updateDictionaryFromFile("../../res/dictionary/allWords5.txt");
+Wordle.updateDictionaryFromFile("../../res/dictionary/allWords6.txt");
+Wordle.updateDictionaryFromFile("../../res/dictionary/allWords7.txt");
+Wordle.updateDictionaryFromFile("../../res/dictionary/allWords8.txt");
 
-Wordle.loadWordsFromFile(4, "dictionary/guessableWords4.txt");
-Wordle.loadWordsFromFile(5, "dictionary/guessableWords5.txt");
-Wordle.loadWordsFromFile(6, "dictionary/guessableWords6.txt");
-Wordle.loadWordsFromFile(7, "dictionary/guessableWords7.txt");
-Wordle.loadWordsFromFile(8, "dictionary/guessableWords8.txt");
+Wordle.loadWordsFromFile(4, "../../res/dictionary/guessableWords4.txt");
+Wordle.loadWordsFromFile(5, "../../res/dictionary/guessableWords5.txt");
+Wordle.loadWordsFromFile(6, "../../res/dictionary/guessableWords6.txt");
+Wordle.loadWordsFromFile(7, "../../res/dictionary/guessableWords7.txt");
+Wordle.loadWordsFromFile(8, "../../res/dictionary/guessableWords8.txt");
 
 const staticPrefixFuncs = new Map();
 const dynPrefixFuncs = [];
@@ -280,4 +281,4 @@ function processMessage(msg){
 	}
 }
 
-module.exports = {Wordle:Wordle, setFunc:setFunc, processMessage:processMessage};
+module.exports = {Wordle, setFunc, processMessage};

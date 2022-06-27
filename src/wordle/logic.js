@@ -1,15 +1,7 @@
-console.log("Tryna connect....");
+const {Wordle, setFunc} = require("./core");
+const Commands = require('../commands');
 
-require('dotenv').config();
-
-const Discord = require("discord.js");
-const database = require("./database");
-const {Wordle, processMessage, setFunc} = require("./wordle");
-const Commands = require('./commands');
-
-let w = new Wordle();	//Hack to make JSDoc know what a wordle is
-
-/** @type {Map<string, w>} */
+/** @type {Map<string, Wordle>} */
 let wordles = new Map();
 
 /** @param {Discord.Message} msg */
@@ -50,18 +42,8 @@ function deleteWordle(msg){
 //Save data to database every minute
 setInterval(_=>database.saveData(),60000);
 
-//Discord client (controls the bot)
-const client = new Discord.Client({intents: 32767});
-//Log message to console after successful login
-client.on("ready", ()=>{console.log(`Logged in as ${client.user.tag}.`)})
-//Process messages
-client.on("messageCreate",msg=>{
-	processMessage(msg);
-	Commands.process(msg);
-})
-
 let wordleHandler = new Commands.Module("Wordle", "wordle");
-wordleHandler.addCommand("help", (msg, data, ...args)=>{
+wordleHandler.addCommand("help", (msg)=>{
 	msg.reply([
 		"Wordle Bot Commands",
 		"-----------------------------",
@@ -87,12 +69,14 @@ wordleHandler.addCommand("help", (msg, data, ...args)=>{
 		"-----------------------------",
 	].join('\n'))
 })
-wordleHandler.setDefaultCommandAsAlias("help");
+wordleHandler.setDefaultCommandAsAlias("help");	//Now "wordle" is an alias for "wordle-help"
 
 wordleHandler.addCommand("test", (msg)=>{
 	msg.reply("Hello! I am Wordle Bot!");
 })
-
+wordleHandler.addCommand("enable", (msg)=>{
+	
+})
 setFunc("!wordle-enable",(msg,_args)=>{
 	if(getWordle(msg)){
 		msg.reply("Wordle is already enabled in this channel!");
@@ -103,6 +87,7 @@ setFunc("!wordle-enable",(msg,_args)=>{
 		saveWordle(msg);
 	}
 });
+
 setFunc("!wordle-reset",(msg,_args)=>{
 	let wordle = getWordle(msg);
 	if(!wordle){
@@ -233,9 +218,3 @@ setFunc("!encourage",(msg,args)=>{
 	let name = args[0];
 	msg.channel.send(`${name} ${name} 你最棒，${name} ${name} 你最强!\n你最棒，你最强，你最棒，你最强，耶!!!!\n-- ${msg.author.username} ${args[1] ? ` told ${args[1]} to say` : ""}`);
 })
-
-//Set up a server to be pinged by uptime robot, to keep this repl alive
-require("./server")();
-
-//Login as the bot
-client.login(process.env.TOKEN)
