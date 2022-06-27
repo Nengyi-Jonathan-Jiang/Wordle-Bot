@@ -1,1 +1,1 @@
-{"796555696250159126-938934374332764180":"{\"length\":5,\"defaultLength\":5,\"leniency\":false,\"defaultLeniency\":false,\"guesses\":[],\"target\":\"WORDLE\",\"dictionary\":[],\"words\":[]}","937490415354007602-939263946819510313":"{\"length\":5,\"defaultLength\":5,\"defaultLeniency\":false,\"guesses\":[],\"target\":\"BORDER\",\"dictionary\":[],\"words\":[]}","937490415354007602-990050059376791592":"{\"length\":4,\"defaultLength\":5,\"defaultLeniency\":false,\"guesses\":[],\"target\":\"SOFT\",\"dictionary\":[],\"words\":[]}"}
+{}

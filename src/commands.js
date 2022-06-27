@@ -10,11 +10,11 @@ class Module{
     constructor(name, prefix){
         prefix ||= name;
         if(Module.moduleNames.has(name))
-            throw new Error(`Error: Module already exists with name "${name}"`);
+            throw new Error(`Module already exists with name "${name}"`);
         if(prefix.split(/\s/g).length != 1)
-            throw new Error(`Error: Prefix may not contain spaces or newlines`);
+            throw new Error(`Prefix may not contain spaces or newlines`);
         if(Module.modules.has(prefix))
-            throw new Error(`Error: Prefix "${prefix}" already taken`);
+            throw new Error(`Prefix "${prefix}" already taken`);
         
         Module.moduleNames.add(name);
         Module.modules.set(prefix, this);
@@ -34,14 +34,14 @@ class Module{
     /** @param {String} name @param {Command} func */
     addCommand(name, func){
         if(this.commands.has(name))
-            throw new Error(`Error: Command "${name}" already exists in module "${this.name}"`);
+            throw new Error(`Command "${name}" already exists in module "${this.name}"`);
         this.commands.set(name, func);
     }
 
     /** @param {Command} func */
     setDefaultCommand(func){
         if(this.defaultCommand !== null)
-            throw new Error(`Error: Default command already exists in module ${this.name}`);
+            throw new Error(`Default command already exists in module "${this.name}"`);
         this.defaultCommand = func;
     }
 
@@ -75,6 +75,7 @@ class Module{
 /** @param {import("discord.js").Message} msg */
 function process(msg){
     const lines = msg.content.split(/\n/g).filter(i=>i!="").map(i => i.split(/\s+/g).join(" "));
+    if(lines.length == 0) return;
     let line;
     try{
         line = lines[0];
@@ -84,12 +85,15 @@ function process(msg){
         for(let i = 1; i < lines.length; i++){
             line = lines[i];
             if(!execute(msg, line)) {
-                msg.reply(`Unknown command: ${line}`);
+                msg.reply(`Unknown command: "${line}"`);
                 return;
             }
         }
     }
-    catch(e){msg.reply(`Error executing command \"${line}\": ${e.message}`)}
+    catch(e){
+        console.log(`Error executing command "${line}" in channel ${msg.channel.name} of server ${msg.guild.name}: ${e.stack}`);
+        msg.reply(`Error executing command "${line}": ${e.message}`)
+    }
 }
 
 /** @param {import("discord.js").Message} msg @param {String} line */
@@ -103,7 +107,7 @@ function execute(msg, line){
     }
     let module = Module.modules.get(prefix)
     if(!module.hasCommand(command)){
-        throw new Error(`Unknown command for prefix ${prefix}`);
+        throw new Error(`Unknown command for prefix "${prefix}"`);
     }
 
     // Execute the command

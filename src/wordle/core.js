@@ -10,8 +10,8 @@ class Wordle{
 	static IMAGE_SIZE = 500;
 
 	constructor(){
-		this.length = this.defaultLength = Wordle.DEFAULT_LENGTH;
-		this.lenient = this.defaultLeniency = Wordle.DEFAULT_LENIENCY;
+		this.defaultLength = Wordle.DEFAULT_LENGTH;
+		this.lenient = Wordle.DEFAULT_LENIENCY;
 
 		/** @type {WordleResult[]} */
 		this.guesses = [];
@@ -24,34 +24,40 @@ class Wordle{
 		this.target = this.randomWord();
 	}
 
-	reset(){
-		this.target = this.randomWord(this.length);
+	generate(length){
+		if(length === undefined) length = this.defaultLength;
+
+		this.target = this.randomWord(length);
 		this.guesses = [];
-		console.log(this.target);
+	}
+
+	abandon(){
+		this.target = "";
+	}
+
+	get abandoned(){
+		return this.target == "";
 	}
 
 	/** @param {String} guess */
 	guess(guess){
+		if(this.abandoned){
+			throw new Error(`No wordle generated`);
+		}
 		if(!/[a-zA-Z]+/.test(guess)){
-			throw new WordleError(
-				"non-alpha", 
-				`Error: your guess (${guess}) contains non-alphabetic characters.`
-			);
+			throw new Error(`"${guess}" contains non-alphabetic characters.`);
 		}
 		if(guess.length != this.target.length){
-			throw new WordleError(
-				"length mismatch", 
-				`Error: expected word of length (${this.target.length}) but \"${guess}\" has ${guess.length} letters`
-			);
+			throw new Error(`expected word of length (${this.target.length}) but got "${guess}" which has ${guess.length} letters`);
 		}
+		guess = guess.toUpperCase();
 		if(!this.lenient && !this.exists(guess)){
-			throw new WordleError(
-				"dictionary error", 
-				`Error: could not find word ${guess} in my dictionary. To add new words to my dictionary, use !wordle-dictionary. To add new words to the guessable word list, use !wordle-add. To allow nonexistent words, turn on lenient mode`
-			);
+			throw new Error(`could not find word "${guess}" in dictionary`);
 		}
 	
-		this.guesses.push(new WordleResult(this.target.length, this.target, guess));
+		let result = new WordleResult(this.target.length, this.target, guess);
+		this.guesses.push(result);
+		return result.success;
 	}
 
 	/** @param {String} word */
@@ -65,29 +71,40 @@ class Wordle{
 	}
 
 	/** @param {String} word */
+	removeWord(word){
+		if(Wordle.dictionary.has(word)) throw new Error("Could not remove built in word");
+		if(!this.dictionary.has(word)) throw new Error("Word not in dictionary");
+		this.words.get(word.length).delete(word);
+		this.dictionary.delete(word);
+	}
+
+	/** @param {String} word */
 	exists(word){
 		return Wordle.dictionary.has(word) || this.dictionary.has(word);
 	}
 
 	/** @param {Number} length */
 	randomWord(length){
+		length ||= this.defaultLength;
 		let words = [...(Wordle.words.get(length) || []), ...(this.words.get(length) || [])];
-		if(words.length == 0) return "WORDLE";
+		if(words.length == 0) throw new Error("No words with this length exist in my word bank!");
 		return words[~~(words.length * Math.random())];
 	}
 
 	/** @param {Boolean} lenient */
 	setLeniency(lenient){
-		if(lenient == this.lenient){
-			throw new WordleError("", "Warning: command had no effect");
-		}
-		if(this.guesses.length != 0 && this.lenient){
-			throw new WordleError("reverting leniency", "Error: cannot revert leniency to false in the middle of a session");
-		}
 		this.lenient = lenient;
 	}
 
+	set length(length){
+		if(!Wordle.words.has(length) && !this.words.has(length)){
+			throw new Error("Invalid length - no words with this length exist in my word bank.");
+		}
+	}
+
 	get lastGuess(){return this.guesses[this.guesses.length - 1]}
+
+	get success(){return this.lastGuess?.success || false}
 
 	getAllResultsAsImage(){
 		const scale = ~~(Wordle.IMAGE_SIZE / this.target.length);
@@ -99,16 +116,14 @@ class Wordle{
 	}
 
 	getLastResultAsImage(){
-		const scale = ~~(Wordle.IMAGE_SIZE / this.length);
+		const scale = ~~(Wordle.IMAGE_SIZE / this.target.length);
 		return this.guesses[this.guesses.length - 1].toCanvas(scale).toBuffer();
 	}
 
 	toString(){
 		return JSON.stringify({
-			length: this.length,
 			defaultLength: this.defaultLength,
-			leniency: this.lenient,
-			defaultLeniency: this.defaultLeniency,
+			lenient: this.lenient,
 			guesses: this.guesses.map(i => i.guess),
 			target: this.target,
 			dictionary: [...this.dictionary],
@@ -119,16 +134,14 @@ class Wordle{
 	fromString(str){
 		let data = JSON.parse(str);
 
-		this.length = data.length;
 		this.defaultLength = data.defaultLength;
 		this.lenient = data.lenient;
-		this.defaultLeniency = data.defaultLeniency;
 		this.target = data.target;
 
 		this.dictionary = new Set(data.dictionary);
 		this.words = new Map(data.words.map(i=>[i.length, new Set(i.words)]));
 
-		this.guesses = data.guesses.map(guess => new WordleResult(this.length, this.target, guess));
+		this.guesses = data.guesses.map(guess => new WordleResult(this.target.length, this.target, guess));
 
 		return this;
 	}
@@ -179,17 +192,26 @@ class WordleResult {
 	constructor(length, target, guess){
 		this.length = length;
 		this.guess = guess;
+		this.target = target;
 
 		/** @type {Number[]} */
 		this.results = new Array(length).fill(WordleResult.INCORRECT);
 
+		this.success = guess == target;
+
+		if(this.success) this.results.fill(WordleResult.CORRECT);
+		else this.generateResults();
+	}
+
+	/** @private */
+	generateResults(){
 		/** @type {Map<String, Number}} */
 		let charCounts = new Map();
 
 		// First pass - find correct chars, get char counts
-		for(let i = 0; i < length; i++){
-			let targetChar = target[i];
-			if(guess[i] == targetChar){
+		for(let i = 0; i < this.length; i++){
+			let targetChar = this.target[i];
+			if(this.guess[i] == targetChar){
 				this.results[i] = WordleResult.CORRECT;
 			}
 			else{
@@ -197,10 +219,10 @@ class WordleResult {
 			}
 		}
 		// Second pass - determine misplaced/incorrect chars
-		for(let i = 0; i < length; i++){
+		for(let i = 0; i < this.length; i++){
 			if(this.results[i] == WordleResult.CORRECT) continue;
 
-			let guessedChar = guess[i];
+			let guessedChar = this.guess[i];
 			if(charCounts.get(guessedChar) > 0){
 				charCounts.set(guessedChar, charCounts.get(guessedChar - 1));
 				this.results[i] = WordleResult.MISPLACED;
@@ -234,13 +256,6 @@ class WordleResult {
 	}
 }
 
-class WordleError extends Error{
-	constructor(status, message){
-		super(message);
-		this.status = status;
-	}
-}
-
 // Load word lists
 
 Wordle.updateDictionaryFromFile("../../res/dictionary/allWords4.txt");
@@ -255,30 +270,4 @@ Wordle.loadWordsFromFile(6, "../../res/dictionary/guessableWords6.txt");
 Wordle.loadWordsFromFile(7, "../../res/dictionary/guessableWords7.txt");
 Wordle.loadWordsFromFile(8, "../../res/dictionary/guessableWords8.txt");
 
-const staticPrefixFuncs = new Map();
-const dynPrefixFuncs = [];
-/** @param {string|((msg:string)=>boolean)} prefix @param {(msg:import('discord.js').Message,args:string[])=>any} func */
-function setFunc(prefix, func){
-	if(func == null) funcs.delete(prefix);
-	else switch(typeof prefix){
-		case "function":
-			dynPrefixFuncs.push([prefix,func]);
-			break;
-		case "string":
-			staticPrefixFuncs.set(prefix, func);
-			break;
-	}
-}
-
-/** @param {import("discord.js").Message} msg */
-function processMessage(msg){
-	const [prefix, ...args] = msg.content.split(" ");
-	if(staticPrefixFuncs.has(prefix.toLowerCase())){
-		return staticPrefixFuncs.get(prefix)(msg, args);
-	}
-	for(let [prefixFunc,func] of dynPrefixFuncs) if(prefixFunc(msg,prefix.toLowerCase())){
-		return func(msg, args);
-	}
-}
-
-module.exports = {Wordle, setFunc, processMessage};
+module.exports = Wordle;
