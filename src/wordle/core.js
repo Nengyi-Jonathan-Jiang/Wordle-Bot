@@ -2,7 +2,7 @@ const {registerFont, createCanvas, Canvas} = require("canvas");
 const fs = require("fs");
 const Path = require("path");
 
-registerFont('../../res/Orbitron.ttf', { family: 'Orbitron' });
+registerFont(Path.join(__dirname,'../../res/Orbitron.ttf'), { family: 'Orbitron' });
 
 class Wordle{
 	static get DEFAULT_LENGTH(){return 5}
