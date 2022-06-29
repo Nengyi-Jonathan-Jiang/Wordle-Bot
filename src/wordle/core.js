@@ -2,7 +2,7 @@ const {registerFont, createCanvas, Canvas} = require("canvas");
 const fs = require("fs");
 const Path = require("path");
 
-registerFont('./res/Orbitron.ttf', { family: 'Orbitron' });
+registerFont('../../res/Orbitron.ttf', { family: 'Orbitron' });
 
 class Wordle{
 	static get DEFAULT_LENGTH(){return 5}
@@ -224,13 +224,38 @@ class WordleResult {
 
 			let guessedChar = this.guess[i];
 			if(charCounts.get(guessedChar) > 0){
-				charCounts.set(guessedChar, charCounts.get(guessedChar - 1));
+				charCounts.set(guessedChar, charCounts.get(guessedChar) - 1);
 				this.results[i] = WordleResult.MISPLACED;
 			}
 			else{
 				this.results[i] = WordleResult.INCORRECT;
 			}
 		}
+	}
+
+	
+	/** @param {String} word */
+	matches(word){
+		if (word.length != this.length) return false;
+		let charMap = new Map();
+		for (let i = 0; i < this.length; i++) {
+			let c = word[i];
+			if (this.guess[i] == c) {
+				if (this.results[i] != WordleResult.CORRECT) return false;
+			} else {
+				if (this.results[i] == WordleResult.CORRECT) return false;
+				charMap.set(c, (charMap.get(c) || 0) + 1)
+			}
+		}
+		for (let i = 0; i < this.length; i++) {
+			if (this.results[i] == WordleResult.CORRECT) continue;
+			let c = this.guess[i];
+			if (charMap.get(c) > 0) {
+				if (this.results[i] != WordleResult.MISPLACED) return true
+				charMap.set(c, charMap.get(c) - 1);
+			} else if (this.results[i] != Wordle.INCORRECT) return true
+		}
+		return true;
 	}
 
 	/** @param {Number} scale */
@@ -263,6 +288,8 @@ Wordle.updateDictionaryFromFile("../../res/dictionary/allWords5.txt");
 Wordle.updateDictionaryFromFile("../../res/dictionary/allWords6.txt");
 Wordle.updateDictionaryFromFile("../../res/dictionary/allWords7.txt");
 Wordle.updateDictionaryFromFile("../../res/dictionary/allWords8.txt");
+
+console.log("Loaded " + Wordle.dictionary.size + " words into dictionary");
 
 Wordle.loadWordsFromFile(4, "../../res/dictionary/guessableWords4.txt");
 Wordle.loadWordsFromFile(5, "../../res/dictionary/guessableWords5.txt");

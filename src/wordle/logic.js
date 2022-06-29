@@ -149,7 +149,7 @@ wordleHandler.addCommand("guess",(msg,_data,guess) => {
 	saveWordle(msg);
 	
 	msg.reply({
-		content: (success ? "You guessed the wordle!" : " "),
+		content: (success ? "You guessed the wordle!" : ""),
 		files: [new Discord.MessageAttachment(image, "image.png")]
 	}).then(_=>{
 		if(success){
