@@ -7,23 +7,23 @@ const database = require("../database");
 let wordles = new Map();
 
 /** @param {Discord.Message} msg */
-function getChannelString(msg){return `${msg.guild.id}-${msg.channel.id}`}
+function getChannelString(msg) { return `${msg.guild.id}-${msg.channel.id}` }
 
 /** @param {Discord.Message} msg */
-function saveWordle(msg){
+function saveWordle(msg) {
 	let channelStr = getChannelString(msg);
-	if(!wordles.get(channelStr)) return;
-	
+	if (!wordles.get(channelStr)) return;
+
 	database.data[channelStr] = wordles.get(channelStr).toString();
 
 	database.saveData();
 }
 
 /** @param {Discord.Message} msg */
-function getWordle(msg){
+function getWordle(msg) {
 	let channelStr = getChannelString(msg);
-	if(wordles.has(channelStr)) return wordles.get(channelStr);
-	if(database.data[channelStr]){
+	if (wordles.has(channelStr)) return wordles.get(channelStr);
+	if (database.data[channelStr]) {
 		let newWordle = new Wordle().fromString(database.data[channelStr]);
 		wordles.set(channelStr, newWordle);
 		return newWordle;
@@ -32,7 +32,7 @@ function getWordle(msg){
 }
 
 /** @param {Discord.Message} msg */
-function deleteWordle(msg){
+function deleteWordle(msg) {
 	delete database.data[getChannelString(msg)];
 	wordles.delete(getChannelString(msg));
 
@@ -41,7 +41,7 @@ function deleteWordle(msg){
 
 let wordleHandler = new Commands.Module("Wordle", "wordle");
 
-function help(msg){
+function help(msg) {
 	msg.reply([
 		"Wordle Bot Commands",
 		"-----------------------------",
@@ -61,55 +61,55 @@ function help(msg){
 	].join('\n'))
 }
 wordleHandler.addCommand("help", help)
-wordleHandler.setDefaultCommand(msg=>{
-	if(getWordle(msg)) help(msg);
+wordleHandler.setDefaultCommand(msg => {
+	if (getWordle(msg)) help(msg);
 });	//Now "wordle" is an alias for "wordle-help"
 
-wordleHandler.addCommand("test", (msg)=>{
+wordleHandler.addCommand("test", (msg) => {
 	msg.reply("Hello! I am Wordle Bot!");
 });
 
-wordleHandler.addCommand("enable", (msg)=>{
-	if(getWordle(msg)){
+wordleHandler.addCommand("enable", (msg) => {
+	if (getWordle(msg)) {
 		msg.reply("Wordle is already enabled in this channel.");
 	}
-	else{
+	else {
 		wordles.set(getChannelString(msg), new Wordle());
 		msg.reply("Enabled wordle in this channel");
 		saveWordle(msg);
 	}
 });
-wordleHandler.addCommand("disable",(msg,_args)=>{
-	if(getWordle(msg)){
+wordleHandler.addCommand("disable", (msg, _args) => {
+	if (getWordle(msg)) {
 		deleteWordle(msg);
 		msg.reply("Disabled wordle in this channel");
 	}
-	else{
+	else {
 		msg.reply("Wordle is already disabled in this channel.");
 	}
 });
 
 
-wordleHandler.addCommand("generate", (msg,_data,length,leniency)=>{
+wordleHandler.addCommand("generate", (msg, _data, length, leniency) => {
 	let wordle = getWordle(msg);
-	if(!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
+	if (!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
 
-	if(!wordle.abandoned){
+	if (!wordle.abandoned) {
 		msg.reply("You must ditch the current wordle before generating a new one!");
 	}
-	else{
+	else {
 		wordle.generate(+length, leniency === undefined ? undefined : leniency == "true");
 		saveWordle(msg);
 
 		msg.reply(`Generated new ${wordle.lenient ? "lenient " : ""}wordle with length ${wordle.target.length}`);
 	}
 })
-wordleHandler.addCommand("abandon",(msg)=>{
+wordleHandler.addCommand("abandon", (msg) => {
 	let wordle = getWordle(msg);
-	if(!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
-	
-	if(wordle.abandoned){
-		return void	msg.reply("You already ditched this wordle.");
+	if (!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
+
+	if (wordle.abandoned) {
+		return void msg.reply("You already ditched this wordle.");
 	}
 
 	let answer = wordle.target;
@@ -117,17 +117,17 @@ wordleHandler.addCommand("abandon",(msg)=>{
 	wordle.generate();
 	saveWordle(msg);
 
-	msg.reply(`You abandoned the wordle. The answer was ${answer}`).then(_=>{
+	msg.reply(`You abandoned the wordle. The answer was ${answer}`).then(_ => {
 		msg.channel.send(`Generated new ${wordle.lenient ? "lenient " : ""}wordle with length ${wordle.target.length}`);
 	})
 });
 
-wordleHandler.addCommand("ditch",(msg)=>{
+wordleHandler.addCommand("ditch", (msg) => {
 	let wordle = getWordle(msg);
-	if(!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
-	
-	if(wordle.abandoned){
-		return void	msg.reply("You already ditched this wordle.");
+	if (!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
+
+	if (wordle.abandoned) {
+		return void msg.reply("You already ditched this wordle.");
 	}
 
 	let answer = wordle.target;
@@ -137,62 +137,62 @@ wordleHandler.addCommand("ditch",(msg)=>{
 	msg.reply(`You ditched the wordle. The answer was ${answer}`)
 });
 
-wordleHandler.addCommand("guess",(msg,_data,guess) => {
-	if(!guess) throw new Error("Please provide a word.");
+wordleHandler.addCommand("guess", (msg, _data, guess) => {
+	if (!guess) throw new Error("Please provide a word.");
 
 	let wordle = getWordle(msg);
-	if(!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
+	if (!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
 
 	let success = wordle.guess(guess);
 	let image = success ? wordle.getAllResultsAsImage() : wordle.getLastResultAsImage();
-	if(success) wordle.generate();
+	if (success) wordle.generate();
 	saveWordle(msg);
-	
+
 	msg.reply({
-		content: (success ? "You guessed the wordle!" : ""),
+		content: (success ? "You guessed the wordle!" : " "),
 		files: [new Discord.MessageAttachment(image, "image.png")]
-	}).then(_=>{
-		if(success){
+	}).then(_ => {
+		if (success) {
 			msg.channel.send(`Generated new ${wordle.lenient ? "lenient " : ""}wordle with length ${wordle.target.length}`);
 		}
 	})
 });
 
-wordleHandler.addCommand("history", (msg)=>{
+wordleHandler.addCommand("history", (msg) => {
 	let wordle = getWordle(msg);
-	if(!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
+	if (!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
 
-	if(wordle.guesses.length){
+	if (wordle.guesses.length) {
 		msg.reply({
 			content: " ",
 			files: [new Discord.MessageAttachment(wordle.getAllResultsAsImage(), "image.png")]
 		})
 	}
-	else{
+	else {
 		msg.reply("No history to show!");
 	}
 })
 
-wordleHandler.addCommand("leniency",(msg,_data,leniency,makeDefault)=>{
+wordleHandler.addCommand("leniency", (msg, _data, leniency, makeDefault) => {
 	let wordle = getWordle(msg);
-	if(!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
-	
+	if (!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
+
 	let lenient = leniency == "true";
 
-	if(wordle.lenient == lenient){
+	if (wordle.lenient == lenient) {
 		return void msg.reply(`Leniency is already set to ${lenient}!`);
 	}
 
 	wordle.setLeniency(lenient);
-	
+
 	msg.reply(`Set leniency to ${lenient}`);
 });
 
-wordleHandler.addCommand("length",(msg,_data, length)=>{
+wordleHandler.addCommand("length", (msg, _data, length) => {
 	let wordle = getWordle(msg);
-	if(!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
-	
+	if (!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
+
 	wordle.defaultLength = +length;
-	
+
 	msg.reply(`Set default length to ${+length} (changes will take take effect on the next wordle)`);
 });

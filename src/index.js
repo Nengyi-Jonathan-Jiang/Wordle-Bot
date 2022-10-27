@@ -7,11 +7,16 @@ const database = require("./database");
 const Commands = require('./commands');
 
 //Discord client (controls the bot)
-const client = new Discord.Client({intents: 32767});
+const client = new Discord.Client({
+	intents: 46593,
+   	partials: ['CHANNEL', 'MESSAGE', 'REACTION']
+});
 //Log message to console after successful login
-client.on("ready", ()=>{console.log(`Logged in as ${client.user.tag}.`)})
+client.on("ready", () => { console.log(`Logged in as ${client.user.tag}.`) })
 //Process messages
-client.on("messageCreate",msg=>{
+
+client.on("message", msg => {
+	console.log(msg);
 	Commands.process(msg);
 })
 
