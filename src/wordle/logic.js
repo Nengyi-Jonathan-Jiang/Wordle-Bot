@@ -2,16 +2,15 @@ const Wordle = require("./core");
 const Discord = require("discord.js");
 const Commands = require('../commands');
 const database = require("../database");
+const Message = require("../better-discord/Message");
+const Attachment = require("../better-discord/Attachment");
 
 /** @type {Map<string, Wordle>} */
 let wordles = new Map();
 
-/** @param {Discord.Message} msg */
-function getChannelString(msg) { return `${msg.guild.id}-${msg.channel.id}` }
-
-/** @param {Discord.Message} msg */
+/** @param {Message} msg */
 function saveWordle(msg) {
-	let channelStr = getChannelString(msg);
+	let channelStr = msg.channel.toString();
 	if (!wordles.get(channelStr)) return;
 
 	database.data[channelStr] = wordles.get(channelStr).toString();
@@ -19,9 +18,10 @@ function saveWordle(msg) {
 	database.saveData();
 }
 
-/** @param {Discord.Message} msg */
+/** @param {Message} msg */
 function getWordle(msg) {
-	let channelStr = getChannelString(msg);
+	let channelStr = msg.channel.toString();
+
 	if (wordles.has(channelStr)) return wordles.get(channelStr);
 	if (database.data[channelStr]) {
 		let newWordle = new Wordle().fromString(database.data[channelStr]);
@@ -31,16 +31,19 @@ function getWordle(msg) {
 	return null;
 }
 
-/** @param {Discord.Message} msg */
+/** @param {Message} msg */
 function deleteWordle(msg) {
-	delete database.data[getChannelString(msg)];
-	wordles.delete(getChannelString(msg));
+	delete database.data[msg.channel.toString()];
+	wordles.delete(msg.channel.toString());
 
 	database.saveData();
 }
 
 let wordleHandler = new Commands.Module("Wordle", "wordle");
 
+/**
+ * @param {Message} msg 
+ */
 function help(msg) {
 	msg.reply([
 		"Wordle Bot Commands",
@@ -58,7 +61,7 @@ function help(msg) {
 		"",
 		"history : Shows all previous guesses for this word",
 		"-----------------------------",
-	].join('\n'))
+	].join('\n'));
 }
 wordleHandler.addCommand("help", help)
 wordleHandler.setDefaultCommand(msg => {
@@ -74,7 +77,7 @@ wordleHandler.addCommand("enable", (msg) => {
 		msg.reply("Wordle is already enabled in this channel.");
 	}
 	else {
-		wordles.set(getChannelString(msg), new Wordle());
+		wordles.set(msg.channel.toString(), new Wordle());
 		msg.reply("Enabled wordle in this channel");
 		saveWordle(msg);
 	}
@@ -148,10 +151,10 @@ wordleHandler.addCommand("guess", (msg, _data, guess) => {
 	if (success) wordle.generate();
 	saveWordle(msg);
 
-	msg.reply({
-		content: (success ? "You guessed the wordle!" : " "),
-		files: [new Discord.MessageAttachment(image, "image.png")]
-	}).then(_ => {
+	msg.reply(
+		success ? "You guessed the wordle!" : " ",
+		new Attachment(image, "image.png")
+	).then(_ => {
 		if (success) {
 			msg.channel.send(`Generated new ${wordle.lenient ? "lenient " : ""}wordle with length ${wordle.target.length}`);
 		}
@@ -163,10 +166,7 @@ wordleHandler.addCommand("history", (msg) => {
 	if (!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
 
 	if (wordle.guesses.length) {
-		msg.reply({
-			content: " ",
-			files: [new Discord.MessageAttachment(wordle.getAllResultsAsImage(), "image.png")]
-		})
+		msg.reply(" ", new Attachment(wordle.getAllResultsAsImage(), "image.png"))
 	}
 	else {
 		msg.reply("No history to show!");

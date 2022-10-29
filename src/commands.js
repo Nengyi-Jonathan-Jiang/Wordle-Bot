@@ -1,4 +1,6 @@
-/** @typedef {(msg:import("discord.js").Message,data:any,...args:String[])=>any} Command */
+const Message = require('./better-discord/Message');
+
+/** @typedef {(msg:Message,data:any,...args:String[])=>any} Command */
 
 class Module {
 	/** @type {Map<String, Module>} */
@@ -65,16 +67,18 @@ class Module {
 		return name === undefined ? this.defaultCommand !== null : this.commands.has(name);
 	}
 
-	/** @param {String} name @param {import("discord.js").Message} msg @param {String[]} args */
+	/** @param {String} name @param {Message} msg @param {String[]} args */
 	execute(name, msg, args) {
 		let command = name === undefined ? this.defaultCommand : this.commands.get(name);
-		command.call({}, msg, this.data, ...args);
+		command(msg, this.data, ...args);
 	}
 }
 
 /** @param {import("discord.js").Message} msg */
-function process(msg) {
-	const lines = msg.content.split(/\n/g).filter(i => i != "").map(i => i.split(/\s+/g).join(" "));
+function process(message) {
+	const msg = new Message(message);
+
+	const lines = msg.text.split(/\n/g).filter(i => i != "").map(i => i.split(/\s+/g).join(" "));
 	if (lines.length == 0) return;
 	let line;
 	try {
@@ -96,7 +100,7 @@ function process(msg) {
 	}
 }
 
-/** @param {import("discord.js").Message} msg @param {String} line */
+/** @param {Message} msg @param {String} line */
 function execute(msg, line) {
 	// split the line into the arguments
 	const [prefix, command, ...args] = line.split(/ /);
