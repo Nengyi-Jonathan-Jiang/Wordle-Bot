@@ -28,3 +28,5 @@ require("./server");
 
 //Login as the bot
 client.login(process.env.TOKEN)
+
+database.onExit(client);

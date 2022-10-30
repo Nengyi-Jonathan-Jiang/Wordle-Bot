@@ -1,3 +1,4 @@
+const { Client } = require('discord.js');
 const fs = require('fs');
 
 const atob = a => Buffer.from(a, 'base64').toString('binary')
@@ -10,10 +11,12 @@ function saveData(){
     fs.writeFileSync("db.txt", btoa(JSON.stringify(data)));
 }
 
-(function saveOnExit(){
+/** @param {Client} client */
+function onExit(client){
     function exitHandler(options, exitCode) {
         if (options.cleanup){
             console.log("Saving data...");
+            client.destroy();
             saveData();
         }
         if (exitCode || exitCode === 0)
@@ -35,9 +38,10 @@ function saveData(){
     process.on('SIGTERM', exitHandler.bind(null, {exit:true}));
     process.on('SIGBREAK', exitHandler.bind(null, {exit:true}));
     process.on('disconnect', exitHandler.bind(null, {exit:true}));
-})();
+};
 
 module.exports = {
     saveData: saveData,
-    get data(){return data} 
+    get data(){return data} ,
+    onExit: onExit
 }
