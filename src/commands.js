@@ -1,4 +1,10 @@
+const Channel = require('./better-discord/Channel');
+const Guild = require('./better-discord/Guild');
 const Message = require('./better-discord/Message');
+const User = require('./better-discord/User');
+const database = require('./database');
+
+const db = require('./database');
 
 /** @typedef {(msg:Message,data:any,...args:String[])=>any} Command */
 
@@ -71,6 +77,51 @@ class Module {
 	execute(name, msg, args) {
 		let command = name === undefined ? this.defaultCommand : this.commands.get(name);
 		command(msg, this.data, ...args);
+	}
+
+	/** @private */
+	_getModuleData(){
+		return database.data["Commandsjs-data-" + this.name] ||= {};
+	}
+
+	/**
+	 * @param {any} [defaultData]
+	 */
+	getModuleData(defaultData){
+		return this._getModuleData()["ModuleData"] ||= defaultData;
+	}
+
+	/**
+	 * @private
+	 * @param {Guild} guild
+	 */
+	_getGuildData(guild){
+		return (this._getModuleData()["Guilds"] ||= {})[guild.id] ||= {};
+	}
+
+	/**
+	 * @param {Guild} guild
+	 * @param {any} [defaultData]
+	 */
+	getGuildData(guild, defaultData){
+		return this._getGuildData(guild)["GuildData"] ||= defaultData;
+	}
+
+	/**
+	 * @param {Channel} channel
+	 * @param {any} [defaultData]
+	 */
+	getChannelData(channel, defaultData){
+		return (this._getGuildData(channel.guild)["Channels"] ||= {})[channel.id] ||= defaultData;
+	}
+
+
+	/**
+	 * @param {User} user 
+	 * @param {any} defaultData
+	 */
+	getUserData(user, defaultData){
+		return (this._getModuleData()["Users"] ||= {})[user.id] ||= defaultData;
 	}
 }
 

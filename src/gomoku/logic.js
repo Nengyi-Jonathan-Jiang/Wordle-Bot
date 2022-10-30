@@ -1,25 +1,31 @@
 const Wordle = require("./core");
+const Discord = require("discord.js");
+const Commands = require('../commands');
+const database = require("../database");
 const Message = require("../better-discord/Message");
 const Attachment = require("../better-discord/Attachment");
 
-let WordleModule = new (require('../commands')).Module("Wordle", "wordle");
-
-let wordles = {};
+/** @type {Map<string, Wordle>} */
+let wordles = new Map();
 
 /** @param {Message} msg */
 function saveWordle(msg) {
-	if (!wordles[msg.channel]) return;
+	let channelStr = msg.channel.toString();
+	if (!wordles.get(channelStr)) return;
 
-	WordleModule.getChannelData(msg.channel, {}).wordle = wordles[msg.channel].toString();
+	database.data[channelStr] = wordles.get(channelStr).toString();
+
+	database.saveData();
 }
 
 /** @param {Message} msg */
 function getWordle(msg) {
-	if (wordles[msg.channel]) return wordles[msg.channel];
+	let channelStr = msg.channel.toString();
 
-	if (WordleModule.getChannelData(msg.channel, null)) {
-		let newWordle = new Wordle().fromString(WordleModule.getChannelData(msg.channel).wordle);
-		wordles[msg.channel] = newWordle;
+	if (wordles.has(channelStr)) return wordles.get(channelStr);
+	if (database.data[channelStr]) {
+		let newWordle = new Wordle().fromString(database.data[channelStr]);
+		wordles.set(channelStr, newWordle);
 		return newWordle;
 	}
 	return null;
@@ -27,9 +33,13 @@ function getWordle(msg) {
 
 /** @param {Message} msg */
 function deleteWordle(msg) {
-	delete WordleModule.getChannelData(msg.channel).wordle;
-	delete wordles[msg.channel];
+	delete database.data[msg.channel.toString()];
+	wordles.delete(msg.channel.toString());
+
+	database.saveData();
 }
+
+let wordleHandler = new Commands.Module("Wordle", "wordle");
 
 /**
  * @param {Message} msg 
@@ -53,26 +63,26 @@ function help(msg) {
 		"-----------------------------",
 	].join('\n'));
 }
-WordleModule.addCommand("help", help)
-WordleModule.setDefaultCommand(msg => {
+wordleHandler.addCommand("help", help)
+wordleHandler.setDefaultCommand(msg => {
 	help(msg);
 });
 
-WordleModule.addCommand("test", (msg) => {
+wordleHandler.addCommand("test", (msg) => {
 	msg.reply("Hello! I am Wordle Bot!");
 });
 
-WordleModule.addCommand("enable", (msg) => {
+wordleHandler.addCommand("enable", (msg) => {
 	if (getWordle(msg)) {
 		msg.reply("Wordle is already enabled in this channel.");
 	}
 	else {
-		wordles[msg.channel.toString()] = new Wordle();
+		wordles.set(msg.channel.toString(), new Wordle());
 		msg.reply("Enabled wordle in this channel");
 		saveWordle(msg);
 	}
 });
-WordleModule.addCommand("disable", (msg, _args) => {
+wordleHandler.addCommand("disable", (msg, _args) => {
 	if (getWordle(msg)) {
 		deleteWordle(msg);
 		msg.reply("Disabled wordle in this channel");
@@ -83,7 +93,7 @@ WordleModule.addCommand("disable", (msg, _args) => {
 });
 
 
-WordleModule.addCommand("generate", (msg, _data, length, leniency) => {
+wordleHandler.addCommand("generate", (msg, _data, length, leniency) => {
 	let wordle = getWordle(msg);
 	if (!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
 
@@ -97,7 +107,7 @@ WordleModule.addCommand("generate", (msg, _data, length, leniency) => {
 		msg.reply(`Generated new ${wordle.lenient ? "lenient " : ""}wordle with length ${wordle.target.length}`);
 	}
 })
-WordleModule.addCommand("abandon", (msg) => {
+wordleHandler.addCommand("abandon", (msg) => {
 	let wordle = getWordle(msg);
 	if (!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
 
@@ -115,7 +125,7 @@ WordleModule.addCommand("abandon", (msg) => {
 	})
 });
 
-WordleModule.addCommand("ditch", (msg) => {
+wordleHandler.addCommand("ditch", (msg) => {
 	let wordle = getWordle(msg);
 	if (!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
 
@@ -130,7 +140,7 @@ WordleModule.addCommand("ditch", (msg) => {
 	msg.reply(`You ditched the wordle. The answer was ${answer}`)
 });
 
-WordleModule.addCommand("guess", (msg, _data, guess) => {
+wordleHandler.addCommand("guess", (msg, _data, guess) => {
 	if (!guess) throw new Error("Please provide a word.");
 
 	let wordle = getWordle(msg);
@@ -151,7 +161,7 @@ WordleModule.addCommand("guess", (msg, _data, guess) => {
 	})
 });
 
-WordleModule.addCommand("history", (msg) => {
+wordleHandler.addCommand("history", (msg) => {
 	let wordle = getWordle(msg);
 	if (!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
 
@@ -163,7 +173,7 @@ WordleModule.addCommand("history", (msg) => {
 	}
 })
 
-WordleModule.addCommand("leniency", (msg, _data, leniency, makeDefault) => {
+wordleHandler.addCommand("leniency", (msg, _data, leniency, makeDefault) => {
 	let wordle = getWordle(msg);
 	if (!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
 
@@ -178,7 +188,7 @@ WordleModule.addCommand("leniency", (msg, _data, leniency, makeDefault) => {
 	msg.reply(`Set leniency to ${lenient}`);
 });
 
-WordleModule.addCommand("length", (msg, _data, length) => {
+wordleHandler.addCommand("length", (msg, _data, length) => {
 	let wordle = getWordle(msg);
 	if (!wordle) return void msg.reply("Wordle is currently disabled in this channel! Use \"wordle enable\" to enable it.");
 
